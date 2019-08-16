@@ -21,11 +21,11 @@ RUN \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 && cd /usr/local/src/fastdfs/ \
 && ./make.sh && ./make.sh install \
 #配置文件准备
-RUN cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf
-RUN cp /etc/fdfs/storage.conf.sample /etc/fdfs/storage.conf
-RUN cp /etc/fdfs/client.conf.sample /etc/fdfs/client.conf #客户端文件，测试用
-RUN cp /usr/local/src/fastdfs/conf/http.conf /etc/fdfs/ #供nginx访问使用
-RUN cp /usr/local/src/fastdfs/conf/mime.types /etc/fdfs/ #供nginx访问使用
+#RUN cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf
+#RUN cp /etc/fdfs/storage.conf.sample /etc/fdfs/storage.conf
+#RUN cp /etc/fdfs/client.conf.sample /etc/fdfs/client.conf #客户端文件，测试用
+#RUN cp /usr/local/src/fastdfs/conf/http.conf /etc/fdfs/ #供nginx访问使用
+#RUN cp /usr/local/src/fastdfs/conf/mime.types /etc/fdfs/ #供nginx访问使用
 #切换到安装目录#安装fastdfs-nginx-module
 && cd /usr/local/src \
 && git clone https://github.com/happyfish100/fastdfs-nginx-module.git --depth 1 \
@@ -41,8 +41,6 @@ RUN cp /usr/local/src/fastdfs/conf/mime.types /etc/fdfs/ #供nginx访问使用
 #tracker配置服务端口默认22122#存储日志和数ca据的根目录
 && sed 's/^base_path.*/base_path=/fastdfs/tracker/g' /etc/fdfs/tracker.conf.sample > /etc/fdfs/tracker.conf \
 && fdfs_trackerd /etc/fdfs/tracker.conf start \
-
-#storage配置服务端口默认23000 # 数据和日志文件存储根目录# 第一个存储目录# tracker服务器IP和端口
 && sed 's/^base_path./base_path=/fastdfs/storage/g' /etc/fdfs/storage.conf.sample > /etc/fdfs/storage.conf \
 && sed 's/^store_path0./store_path0=/fastdfs/storage/g' /etc/fdfs/storage.conf > /etc/fdfs/storage.conf.tmp \
 && cat /etc/fdfs/storage.conf.tmp > /etc/fdfs/storage.conf \
