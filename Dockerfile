@@ -2,24 +2,24 @@
 #nginx相关模块根据需要可以删掉 依赖pcre pcre-devel zlib zlib-devel openssl-devel
 FROM centos:7
 #设置时间为中国时区 并且 更新
-RUN \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime 
-&& yum -y update 
+RUN \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+&& yum -y update \
 #编译环境
-&& yum install wget git gcc gcc-c++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel -y 
+&& yum install wget git gcc gcc-c++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel -y \
 #创建跟踪服务器数据目录
-&& mkdir -p /fastdfs/tracker 
+&& mkdir -p /fastdfs/tracker \
 #创建存储服务器数据目录
-&& mkdir -p /fastdfs/storage 
+&& mkdir -p /fastdfs/storage \
 #切换到安装目录#安装libfatscommon
-&& cd /usr/local/src 
-&& git clone https://github.com/happyfish100/libfastcommon.git --depth 1 
-&& cd /usr/local/src/libfastcommon/ 
-&& ./make.sh && ./make.sh install 
+&& cd /usr/local/src \
+&& git clone https://github.com/happyfish100/libfastcommon.git --depth 1 \
+&& cd /usr/local/src/libfastcommon/ \
+&& ./make.sh && ./make.sh install \
 #切换到安装目录#安装FastDFS
-&& cd /usr/local/src 
-&& git clone https://github.com/happyfish100/fastdfs.git --depth 1 
-&& cd /usr/local/src/fastdfs/ 
-&& ./make.sh && ./make.sh install 
+&& cd /usr/local/src \
+&& git clone https://github.com/happyfish100/fastdfs.git --depth 1 \
+&& cd /usr/local/src/fastdfs/ \
+&& ./make.sh && ./make.sh install \
 #配置文件准备
 #RUN cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf
 #RUN cp /etc/fdfs/storage.conf.sample /etc/fdfs/storage.conf
