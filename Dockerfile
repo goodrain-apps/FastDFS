@@ -1,59 +1,97 @@
-#参考https://github.com/happyfish100/fastdfs/wiki
-#nginx相关模块根据需要可以删掉 依赖pcre pcre-devel zlib zlib-devel openssl-devel
-FROM centos:7
-#设置时间为中国时区 并且 更新
-RUN \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-&& yum -y update \
-#编译环境
-&& yum install wget git gcc gcc-c++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel -y \
-#创建跟踪服务器数据目录
-&& mkdir -p /fastdfs/tracker \
-#创建存储服务器数据目录
-&& mkdir -p /fastdfs/storage \
-#切换到安装目录#安装libfatscommon
-&& cd /usr/local/src \
-&& git clone https://github.com/happyfish100/libfastcommon.git --depth 1 \
-&& cd /usr/local/src/libfastcommon/ \
-&& ./make.sh && ./make.sh install \
-#切换到安装目录#安装FastDFS
-&& cd /usr/local/src \
-&& git clone https://github.com/happyfish100/fastdfs.git --depth 1 \
-&& cd /usr/local/src/fastdfs/ \
-&& ./make.sh && ./make.sh install \
-#配置文件准备
-RUN cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf \
-&& cp /etc/fdfs/storage.conf.sample /etc/fdfs/storage.conf \
-&& cp /etc/fdfs/client.conf.sample /etc/fdfs/client.conf \
-&& cp /usr/local/src/fastdfs/conf/http.conf /etc/fdfs/ \
-&& cp /usr/local/src/fastdfs/conf/mime.types /etc/fdfs/ \
-#切换到安装目录#安装fastdfs-nginx-module
-&& cd /usr/local/src \
-&& git clone https://github.com/happyfish100/fastdfs-nginx-module.git --depth 1 \
-&& cp /usr/local/src/fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs \
-#切换到安装目录#安装安装nginx
-&& cd /usr/local/src \
-&& wget http://nginx.org/download/nginx-1.13.9.tar.gz \
-&& tar -zxvf nginx-1.13.9.tar.gz \
-&& cd /usr/local/src/nginx-1.13.9 \
-#添加fastdfs-nginx-module模块
-&& ./configure --add-module=/usr/local/src/fastdfs-nginx-module/src/ \
-&& make && make install \
-#tracker配置服务端口默认22122#存储日志和数ca据的根目录
-&& sed 's/^base_path.*/base_path=/fastdfs/tracker/g' /etc/fdfs/tracker.conf.sample > /etc/fdfs/tracker.conf \
-&& fdfs_trackerd /etc/fdfs/tracker.conf start \
-&& sed 's/^base_path./base_path=/fastdfs/storage/g' /etc/fdfs/storage.conf.sample > /etc/fdfs/storage.conf \
-&& sed 's/^store_path0./store_path0=/fastdfs/storage/g' /etc/fdfs/storage.conf > /etc/fdfs/storage.conf.tmp \
-&& cat /etc/fdfs/storage.conf.tmp > /etc/fdfs/storage.conf \
-&& sed 's/^tracker_server.*/tracker_server=127.0.0.1:22122/g' /etc/fdfs/storage.conf > /etc/fdfs/storage.conf.tmp \
-&& cat /etc/fdfs/storage.conf.tmp > /etc/fdfs/storage.conf \
-&& fdfs_storaged /etc/fdfs/storage.conf start \
+FROM ubuntu:16.04
+LABEL maintainer "Shuanglei Tao - tsl0922@gmail.com"
 
-WORKDIR /usr/local/src/
-EXPOSE 22122 23000
+ENV FDFS_LIB_COMMIT c78f6b17eeb4ba72d84436c8ae9a23ec82beb6a9
+ENV FDFS_COMMIT 5d0d1ef5319c39165b7703b2af89442c3a801eb5
+ENV FDFS_LUA_COMMIT 7e5eb93d6448d4261d41a5529affec62d30dc27e
 
-#ENTRYPOINT tail -f /fastdfs/storage/logs/storaged.log
-#ENTRYPOINT tail -f /fastdfs/tracker/logs/trackerd.log
-ENTRYPOINT tail -f /dev/null
-#执行dockerfile
-#docker build -t="lkp/fastdfs-storaged:0.9" .
-#docker build -t="lkp/fastdfs-trackerd:0.9" .
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    graphicsmagick \
+    curl \
+    git \
+    g++ \
+    automake \
+    autoconf \
+    libtool \
+    libpcre3-dev \
+    libssl-dev \
+    make \
+    vim
+
+RUN git clone https://github.com/happyfish100/libfastcommon.git /tmp/libfastcommon \
+  && cd /tmp/libfastcommon && git checkout $FDFS_LIB_COMMIT \
+  && ./make.sh && ./make.sh install \
+  && git clone https://github.com/happyfish100/fastdfs.git /tmp/fastdfs \
+  && cd /tmp/fastdfs && git checkout -b docker $FDFS_COMMIT \
+  && curl -sLo- https://github.com/happyfish100/fastdfs/pull/96.diff | git apply \
+  && ./make.sh && ./make.sh install \
+  && cp conf/http.conf /etc/fdfs && cp conf/mime.types /etc/fdfs
+
+RUN curl -sLo- https://openresty.org/download/openresty-1.11.2.2.tar.gz | tar xz -C /tmp \
+  && cd /tmp/openresty-1.11.2.2 \
+  && ./configure \
+    --prefix=/usr/openresty \
+    --sbin-path=/usr/sbin/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --pid-path=/var/run/nginx.pid \
+    --lock-path=/var/run/nginx.lock \
+    --http-client-body-temp-path=/var/cache/nginx/client_temp \
+    --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+    --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+    --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+    --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+    --user=nginx \
+    --group=nginx \
+    --with-http_ssl_module \
+    --with-http_realip_module \
+    --with-http_addition_module \
+    --with-http_sub_module \
+    --with-http_dav_module \
+    --with-http_flv_module \
+    --with-http_mp4_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_stub_status_module \
+    --with-http_auth_request_module \
+    --with-threads \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-http_slice_module \
+    --with-mail \
+    --with-mail_ssl_module \
+    --with-file-aio \
+    --with-http_v2_module \
+    --with-ipv6 \
+    --with-pcre-jit \
+  && make && make install \
+  && adduser --system --no-create-home --shell /bin/false --group --disabled-login nginx \
+  && mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx \
+  && mkdir -p /var/log/nginx && chown -R nginx:nginx /var/log/nginx \
+  && git clone https://github.com/azurewang/lua-resty-fastdfs.git /tmp/lua-resty-fastdfs \
+  && cd /tmp/lua-resty-fastdfs && git checkout $FDFS_LUA_COMMIT \
+  && cp -r lib/resty/fastdfs /usr/openresty/lualib/resty
+
+COPY ./nginx.conf /etc/nginx/
+COPY ./fastdfs.lua /etc/nginx/
+
+RUN apt-get remove -y --purge \
+    git \
+    g++ \
+    automake \
+    autoconf \
+    libtool \
+    make \
+  && apt-get purge -y \
+  && apt-get autoremove -y \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /tmp/*
+
+COPY ./docker-entrypoint.sh /
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
