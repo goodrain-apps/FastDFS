@@ -3,6 +3,8 @@
 new_val=$FASTDFS_IPADDR
 old="com.ikingtech.ch116221"
 
+cp /etc/conf/*  /etc/fdfs/
+
 sed -i "s/$old/$new_val/g" /etc/fdfs/client.conf
 sed -i "s/$old/$new_val/g" /etc/fdfs/storage.conf
 sed -i "s/$old/$new_val/g" /etc/fdfs/mod_fastdfs.conf
