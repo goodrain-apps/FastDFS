@@ -1,5 +1,4 @@
 FROM ubuntu:16.04
-LABEL maintainer "Shuanglei Tao - tsl0922@gmail.com"
 
 ENV FDFS_LIB_COMMIT c78f6b17eeb4ba72d84436c8ae9a23ec82beb6a9
 ENV FDFS_COMMIT 5d0d1ef5319c39165b7703b2af89442c3a801eb5
