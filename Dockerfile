@@ -1,14 +1,14 @@
 # centos 7
 FROM centos
 # 添加配置文件
-ADD conf/client.conf /etc/fdfs/
-ADD conf/http.conf /etc/fdfs/
-ADD conf/mime.types /etc/fdfs/
-ADD conf/storage.conf /etc/fdfs/
-ADD conf/tracker.conf /etc/fdfs/
+ADD conf/client.conf /etc/conf/
+ADD conf/http.conf /etc/conf/
+ADD conf/mime.types /etc/conf/
+ADD conf/storage.conf /etc/conf/
+ADD conf/tracker.conf /etc/conf/
 ADD fastdfs.sh /home
-ADD conf/nginx.conf /etc/fdfs/
-ADD conf/mod_fastdfs.conf /etc/fdfs
+ADD conf/nginx.conf /etc/conf/
+ADD conf/mod_fastdfs.conf /etc/conf
 
 # run
 RUN yum install git gcc gcc-c ++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel wget vim -y \
